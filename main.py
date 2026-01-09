@@ -28,10 +28,12 @@ def home():
 def create_student(student: Student):
     data = supabase.table("students").insert(student.dict()).execute()
     return {"message": "Student saved to database", "data": data.data}
+
 @app.get("/mastery/{student_id}")
 def get_mastery(student_id: str):
     data = supabase.table("mastery").select("*").eq("student_id",student_id).execute()
     return data.data
+
 @app.post("/log-action")
 def log_action(payload: dict):
     supabase.table("activity_log").insert({
@@ -40,7 +42,8 @@ def log_action(payload: dict):
         "result": payload["result"]
     }).execute()
     return {"status": "Agent decision saved"}
-    @app.get("/latest-action/{student_id}")
+
+@app.get("/latest-action/{student_id}")
 def get_latest_action(student_id: str):
     data = supabase.table("activity_log") \
         .select("*") \
