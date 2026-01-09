@@ -44,12 +44,4 @@ def log_action(payload: dict):
 
 @app.get("/latest-action/{student_id}")
 def get_latest_action(student_id: str):
-    try:
-        data = supabase.table("activity_log") \
-            .select("*") \
-            .eq("student_id", student_id) \
-            .limit(1) \
-            .execute()
-        return data.data
-    except Exception as e:
-        return {"error": str(e)}
+    return {"status": "NEW VERSION DEPLOYED"}
