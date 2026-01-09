@@ -28,7 +28,6 @@ def home():
 def create_student(student: Student):
     data = supabase.table("students").insert(student.dict()).execute()
     return {"message": "Student saved to database", "data": data.data}
-
 @app.get("/mastery/{student_id}")
 def get_mastery(student_id: str):
     data = supabase.table("mastery").select("*").eq("student_id",student_id).execute()
