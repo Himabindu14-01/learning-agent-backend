@@ -30,7 +30,7 @@ def create_student(student: Student):
     return {"message": "Student saved to database", "data": data.data}
 @app.get("/mastery/{student_id}")
 def get_mastery(student_id: str):
-    data = supabase.table("mastery").select("*").eq("student_id", student_id).execute()
+    data = supabase.table("mastery").select("*").eq("student_id",student_id).execute()
     return data.data
 @app.post("/log-action")
 def log_action(payload: dict):
@@ -40,3 +40,13 @@ def log_action(payload: dict):
         "result": payload["result"]
     }).execute()
     return {"status": "Agent decision saved"}
+    @app.get("/latest-action/{student_id}")
+def get_latest_action(student_id: str):
+    data = supabase.table("activity_log") \
+        .select("*") \
+        .eq("student_id", student_id) \
+        .order("created_at", desc=True) \
+        .limit(1) \
+        .execute()
+    return data.data
+
