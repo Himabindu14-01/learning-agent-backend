@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Learning Dashboard - Adaptive Learning Agent</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Learning Dashboard</h1>
+            <p class="subtitle" id="studentName">Loading...</p>
+        </header>
+
+        <main>
+            <div id="loadingState" class="loading-state">
+                <div class="loader"></div>
+                <p>Loading your learning plan...</p>
+            </div>
+
+            <div id="dashboardContent" style="display: none;">
+                <!-- Student Profile Section -->
+                <div class="card">
+                    <h2>Student Profile</h2>
+                    <div class="profile-grid">
+                        <div class="profile-item">
+                            <span class="label">Name:</span>
+                            <span class="value" id="profileName">-</span>
+                        </div>
+                        <div class="profile-item">
+                            <span class="label">Class:</span>
+                            <span class="value" id="profileClass">-</span>
+                        </div>
+                        <div class="profile-item">
+                            <span class="label">Subject:</span>
+                            <span class="value" id="profileSubject">-</span>
+                        </div>
+                        <div class="profile-item">
+                            <span class="label">Goal:</span>
+                            <span class="value" id="profileGoal">-</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Current Topic Section -->
+                <div class="card">
+                    <h2>Current Topic</h2>
+                    <div class="topic-display">
+                        <span class="topic-name" id="currentTopic">-</span>
+                    </div>
+                </div>
+
+                <!-- Agent Action Section -->
+                <div class="card">
+                    <h2>Agent's Decision</h2>
+                    <div class="action-display">
+                        <span class="action-badge" id="agentAction">-</span>
+                        <p class="action-description" id="actionDescription">The agent has analyzed your progress and made a decision.</p>
+                    </div>
+                </div>
+
+                <!-- Today's Task Section -->
+                <div class="card">
+                    <h2>Today's Assigned Task</h2>
+                    <div class="task-display">
+                        <p id="taskContent">-</p>
+                    </div>
+                </div>
+
+                <!-- Mastery Scores Section -->
+                <div class="card">
+                    <h2>Topic-wise Mastery</h2>
+                    <div id="masteryContainer" class="mastery-container">
+                        <p class="no-data">No mastery data available yet.</p>
+                    </div>
+                </div>
+
+                <!-- Activity History Section -->
+                <div class="card">
+                    <h2>Activity History</h2>
+                    <div id="activityContainer" class="activity-container">
+                        <p class="no-data">No activity history available yet.</p>
+                    </div>
+                </div>
+
+                <!-- Refresh Button -->
+                <div class="card">
+                    <button class="btn btn-primary" id="refreshBtn" onclick="loadDashboard()">
+                        Refresh Dashboard
+                    </button>
+                </div>
+            </div>
+
+            <div id="errorState" class="error-state" style="display: none;">
+                <div class="card">
+                    <p class="error-message" id="errorText"></p>
+                    <button class="btn btn-secondary" onclick="window.location.href='index.html'">Go Back to Onboarding</button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="script.js"></script>
+    <script>
+        const studentId = localStorage.getItem('student_id');
+        const studentName = localStorage.getItem('student_name');
+
+        if (studentName) {
+            document.getElementById('studentName').textContent = `Welcome, ${studentName}`;
+        }
+
+        if (!studentId) {
+            document.getElementById('loadingState').style.display = 'none';
+            document.getElementById('errorState').style.display = 'block';
+            document.getElementById('errorText').textContent = 'No student profile found. Please complete onboarding first.';
+        } else {
+            loadDashboard();
+        }
+
+        async function loadDashboard() {
+            const loadingState = document.getElementById('loadingState');
+            const dashboardContent = document.getElementById('dashboardContent');
+            const errorState = document.getElementById('errorState');
+            const refreshBtn = document.getElementById('refreshBtn');
+
+            loadingState.style.display = 'block';
+            dashboardContent.style.display = 'none';
+            errorState.style.display = 'none';
+            refreshBtn.disabled = true;
+
+            try {
+                const response = await apiRequest(`/plan/${studentId}`, {
+                    method: 'GET'
+                });
+
+                // Populate student profile
+                if (response.student) {
+                    document.getElementById('profileName').textContent = response.student.name || '-';
+                    document.getElementById('profileClass').textContent = response.student.class_level || '-';
+                    document.getElementById('profileSubject').textContent = response.student.subject || '-';
+                    document.getElementById('profileGoal').textContent = response.student.goal || '-';
+                }
+
+                // Populate current topic
+                document.getElementById('currentTopic').textContent = response.current_topic || 'Not assigned yet';
+
+                // Populate agent action
+                const action = response.action || 'PENDING';
+                const actionElement = document.getElementById('agentAction');
+                actionElement.textContent = action;
+                actionElement.className = 'action-badge action-' + action.toLowerCase();
+
+                // Action descriptions
+                const descriptions = {
+                    'REMEDIAL': 'The agent has identified areas that need reinforcement. Focus on building foundational understanding.',
+                    'PRACTICE': 'The agent recommends practice exercises to strengthen your grasp of the current topic.',
+                    'ADVANCE': 'The agent has determined you are ready to move to the next topic.',
+                    'PENDING': 'The agent is analyzing your progress. Please wait for a decision.'
+                };
+                document.getElementById('actionDescription').textContent = descriptions[action] || descriptions['PENDING'];
+
+                // Populate task
+                document.getElementById('taskContent').textContent = response.task || 'No task assigned yet.';
+
+                // Populate mastery scores
+                const masteryContainer = document.getElementById('masteryContainer');
+                if (response.mastery && response.mastery.length > 0) {
+                    masteryContainer.innerHTML = '';
+                    response.mastery.forEach(item => {
+                        const masteryItem = document.createElement('div');
+                        masteryItem.className = 'mastery-item';
+                        
+                        const topicName = document.createElement('div');
+                        topicName.className = 'mastery-topic';
+                        topicName.textContent = item.topic || 'Unknown Topic';
+                        
+                        const scoreBar = document.createElement('div');
+                        scoreBar.className = 'mastery-score-bar';
+                        
+                        const scoreFill = document.createElement('div');
+                        scoreFill.className = 'mastery-score-fill';
+                        scoreFill.style.width = `${item.score || 0}%`;
+                        scoreFill.textContent = `${item.score || 0}%`;
+                        
+                        scoreBar.appendChild(scoreFill);
+                        masteryItem.appendChild(topicName);
+                        masteryItem.appendChild(scoreBar);
+                        masteryContainer.appendChild(masteryItem);
+                    });
+                } else {
+                    masteryContainer.innerHTML = '<p class="no-data">No mastery data available yet.</p>';
+                }
+
+                // Populate activity history
+                const activityContainer = document.getElementById('activityContainer');
+                if (response.activity && response.activity.length > 0) {
+                    activityContainer.innerHTML = '';
+                    response.activity.forEach((activity, index) => {
+                        const activityItem = document.createElement('div');
+                        activityItem.className = 'activity-item';
+                        
+                        const activityText = typeof activity === 'string' ? activity : 
+                                           (activity.description || activity.action || JSON.stringify(activity));
+                        
+                        activityItem.innerHTML = `
+                            <span class="activity-number">${index + 1}</span>
+                            <span class="activity-text">${activityText}</span>
+                            ${activity.timestamp ? `<span class="activity-time">${activity.timestamp}</span>` : ''}
+                        `;
+                        
+                        activityContainer.appendChild(activityItem);
+                    });
+                } else {
+                    activityContainer.innerHTML = '<p class="no-data">No activity history available yet.</p>';
+                }
+
+                loadingState.style.display = 'none';
+                dashboardContent.style.display = 'block';
+                refreshBtn.disabled = false;
+            } catch (error) {
+                loadingState.style.display = 'none';
+                errorState.style.display = 'block';
+                document.getElementById('errorText').textContent = 'Failed to load dashboard: ' + error.message;
+                refreshBtn.disabled = false;
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diagnostic Test - Adaptive Learning Agent</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Diagnostic Test</h1>
+            <p class="subtitle">Help us understand your current level</p>
+        </header>
+
+        <main>
+            <div class="card">
+                <div id="loadingState" class="loading-state">
+                    <div class="loader"></div>
+                    <p>Loading diagnostic questions...</p>
+                </div>
+
+                <div id="diagnosticContent" style="display: none;">
+                    <p class="description">Please answer the following questions to help the agent create your personalized learning path.</p>
+
+                    <form id="diagnosticForm">
+                        <div id="questionsContainer"></div>
+
+                        <div id="errorMessage" class="error-message" style="display: none;"></div>
+                        <div id="successMessage" class="success-message" style="display: none;"></div>
+
+                        <button type="submit" class="btn btn-primary" id="submitBtn">
+                            <span id="submitText">Submit Answers</span>
+                            <span id="submitLoader" class="loader" style="display: none;"></span>
+                        </button>
+                    </form>
+                </div>
+
+                <div id="errorState" class="error-state" style="display: none;">
+                    <p class="error-message" id="errorText"></p>
+                    <button class="btn btn-secondary" onclick="window.location.href='index.html'">Go Back to Onboarding</button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="script.js"></script>
+    <script>
+        let questions = [];
+        const studentId = localStorage.getItem('student_id');
+
+        if (!studentId) {
+            document.getElementById('loadingState').style.display = 'none';
+            document.getElementById('errorState').style.display = 'block';
+            document.getElementById('errorText').textContent = 'No student profile found. Please complete onboarding first.';
+        } else {
+            loadDiagnosticQuestions();
+        }
+
+        async function loadDiagnosticQuestions() {
+            try {
+                // For now, we'll use placeholder questions
+                // In production, this would come from GET /diagnostic/questions or similar
+                questions = [
+                    {
+                        id: 1,
+                        question: "What is 2 + 2?",
+                        type: "multiple_choice",
+                        options: ["3", "4", "5", "6"]
+                    },
+                    {
+                        id: 2,
+                        question: "Solve: 5 × 3 = ?",
+                        type: "multiple_choice",
+                        options: ["10", "15", "20", "25"]
+                    },
+                    {
+                        id: 3,
+                        question: "What is the capital of India?",
+                        type: "multiple_choice",
+                        options: ["Mumbai", "Delhi", "Kolkata", "Chennai"]
+                    }
+                ];
+
+                renderQuestions();
+                document.getElementById('loadingState').style.display = 'none';
+                document.getElementById('diagnosticContent').style.display = 'block';
+            } catch (error) {
+                document.getElementById('loadingState').style.display = 'none';
+                document.getElementById('errorState').style.display = 'block';
+                document.getElementById('errorText').textContent = 'Failed to load questions: ' + error.message;
+            }
+        }
+
+        function renderQuestions() {
+            const container = document.getElementById('questionsContainer');
+            container.innerHTML = '';
+
+            questions.forEach((q, index) => {
+                const questionDiv = document.createElement('div');
+                questionDiv.className = 'question-group';
+
+                const questionLabel = document.createElement('label');
+                questionLabel.textContent = `${index + 1}. ${q.question}`;
+                questionLabel.setAttribute('for', `question_${q.id}`);
+                questionDiv.appendChild(questionLabel);
+
+                if (q.type === 'multiple_choice' && q.options) {
+                    q.options.forEach((option, optIndex) => {
+                        const optionDiv = document.createElement('div');
+                        optionDiv.className = 'radio-option';
+
+                        const radio = document.createElement('input');
+                        radio.type = 'radio';
+                        radio.name = `question_${q.id}`;
+                        radio.id = `question_${q.id}_option_${optIndex}`;
+                        radio.value = option;
+                        radio.required = true;
+
+                        const label = document.createElement('label');
+                        label.setAttribute('for', `question_${q.id}_option_${optIndex}`);
+                        label.textContent = option;
+
+                        optionDiv.appendChild(radio);
+                        optionDiv.appendChild(label);
+                        questionDiv.appendChild(optionDiv);
+                    });
+                }
+
+                container.appendChild(questionDiv);
+            });
+        }
+
+        document.getElementById('diagnosticForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const submitBtn = document.getElementById('submitBtn');
+            const submitText = document.getElementById('submitText');
+            const submitLoader = document.getElementById('submitLoader');
+            const errorMessage = document.getElementById('errorMessage');
+            const successMessage = document.getElementById('successMessage');
+
+            errorMessage.style.display = 'none';
+            successMessage.style.display = 'none';
+
+            submitBtn.disabled = true;
+            submitText.textContent = 'Submitting...';
+            submitLoader.style.display = 'inline-block';
+
+            try {
+                const answers = questions.map(q => {
+                    const selectedOption = document.querySelector(`input[name="question_${q.id}"]:checked`);
+                    return {
+                        question_id: q.id,
+                        answer: selectedOption ? selectedOption.value : null
+                    };
+                });
+
+                const response = await apiRequest('/diagnostic/submit', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        student_id: studentId,
+                        answers: answers
+                    })
+                });
+
+                successMessage.textContent = 'Diagnostic submitted successfully! Redirecting to dashboard...';
+                successMessage.style.display = 'block';
+
+                setTimeout(() => {
+                    window.location.href = 'dashboard.html';
+                }, 1500);
+            } catch (error) {
+                errorMessage.textContent = error.message || 'Failed to submit diagnostic. Please try again.';
+                errorMessage.style.display = 'block';
+                
+                submitBtn.disabled = false;
+                submitText.textContent = 'Submit Answers';
+                submitLoader.style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html>

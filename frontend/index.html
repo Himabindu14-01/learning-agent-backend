@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Onboarding - Adaptive Learning Agent</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Adaptive Learning Path Agent</h1>
+            <p class="subtitle">For Rural Students</p>
+        </header>
+
+        <main>
+            <div class="card">
+                <h2>Student Onboarding</h2>
+                <p class="description">Please provide your information to get started with your personalized learning path.</p>
+
+                <form id="onboardingForm">
+                    <div class="form-group">
+                        <label for="name">Name *</label>
+                        <input type="text" id="name" name="name" required placeholder="Enter your name">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="class_level">Class / Grade *</label>
+                        <input type="text" id="class_level" name="class_level" required placeholder="e.g., 8th, 9th, 10th">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="subject">Subject *</label>
+                        <select id="subject" name="subject" required>
+                            <option value="">Select a subject</option>
+                            <option value="Mathematics">Mathematics</option>
+                            <option value="Science">Science</option>
+                            <option value="English">English</option>
+                            <option value="Social Studies">Social Studies</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="goal">Goal *</label>
+                        <select id="goal" name="goal" required>
+                            <option value="">Select your goal</option>
+                            <option value="exam">Exam Preparation</option>
+                            <option value="basics">Learn Basics</option>
+                            <option value="job">Job Skills</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="language">Language Comfort *</label>
+                        <select id="language" name="language" required>
+                            <option value="">Select language</option>
+                            <option value="English">English</option>
+                            <option value="Hindi">Hindi</option>
+                            <option value="Regional">Regional Language</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="daily_time">Daily Study Time (minutes) *</label>
+                        <input type="number" id="daily_time" name="daily_time" required min="15" max="480" placeholder="e.g., 60">
+                        <small>Enter time in minutes (15-480)</small>
+                    </div>
+
+                    <div id="errorMessage" class="error-message" style="display: none;"></div>
+                    <div id="successMessage" class="success-message" style="display: none;"></div>
+
+                    <button type="submit" class="btn btn-primary" id="submitBtn">
+                        <span id="submitText">Create Profile</span>
+                        <span id="submitLoader" class="loader" style="display: none;"></span>
+                    </button>
+                </form>
+            </div>
+        </main>
+    </div>
+
+    <script src="script.js"></script>
+    <script>
+        document.getElementById('onboardingForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const submitBtn = document.getElementById('submitBtn');
+            const submitText = document.getElementById('submitText');
+            const submitLoader = document.getElementById('submitLoader');
+            const errorMessage = document.getElementById('errorMessage');
+            const successMessage = document.getElementById('successMessage');
+
+            // Hide previous messages
+            errorMessage.style.display = 'none';
+            successMessage.style.display = 'none';
+
+            // Show loading state
+            submitBtn.disabled = true;
+            submitText.textContent = 'Creating Profile...';
+            submitLoader.style.display = 'inline-block';
+
+            try {
+                const formData = {
+                    name: document.getElementById('name').value.trim(),
+                    class_level: document.getElementById('class_level').value.trim(),
+                    subject: document.getElementById('subject').value,
+                    goal: document.getElementById('goal').value,
+                    language: document.getElementById('language').value,
+                    daily_time: parseInt(document.getElementById('daily_time').value)
+                };
+
+                const response = await apiRequest('/student', {
+                    method: 'POST',
+                    body: JSON.stringify(formData)
+                });
+
+                if (response.data && response.data.length > 0) {
+                    const studentId = response.data[0].id || response.data[0].student_id;
+                    localStorage.setItem('student_id', studentId);
+                    localStorage.setItem('student_name', formData.name);
+
+                    successMessage.textContent = 'Profile created successfully! Redirecting to diagnostic...';
+                    successMessage.style.display = 'block';
+
+                    setTimeout(() => {
+                        window.location.href = 'diagnostic.html';
+                    }, 1500);
+                } else {
+                    throw new Error('Invalid response from server');
+                }
+            } catch (error) {
+                errorMessage.textContent = error.message || 'Failed to create profile. Please try again.';
+                errorMessage.style.display = 'block';
+                
+                submitBtn.disabled = false;
+                submitText.textContent = 'Create Profile';
+                submitLoader.style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html>
