@@ -5,8 +5,10 @@
  * ============================================
  */
 
-// Backend Base URL - UPDATE THIS WITH YOUR ACTUAL BACKEND URL
-const API_BASE = "https://YOUR-BACKEND-URL.onrender.com";
+
+// Backend Base URL - Production Render URL
+const API_BASE = "https://learning-agent-backend.onrender.com";
+
 
 /**
  * Make API request to backend
@@ -33,23 +35,34 @@ async function apiRequest(endpoint, options = {}) {
     };
 
     try {
+        console.log(`Making API request to: ${url}`);
         const response = await fetch(url, config);
 
         if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
+            const errorText = await response.text();
+            let errorData = {};
+            try {
+                errorData = JSON.parse(errorText);
+            } catch {
+                errorData = { message: errorText };
+            }
+            console.error('API Error:', errorData);
             throw new Error(
                 errorData.message || 
                 errorData.detail || 
+                errorData.error ||
                 `HTTP error! status: ${response.status}`
             );
         }
 
         const data = await response.json();
+        console.log('API Response:', data);
         return data;
     } catch (error) {
         // Handle network errors
+        console.error('API Request Error:', error);
         if (error.name === 'TypeError' && error.message.includes('fetch')) {
-            throw new Error('Network error: Could not connect to backend. Please check your connection and backend URL.');
+            throw new Error(`Network error: Could not connect to backend at ${url}. The Render backend may be sleeping (free tier). Try refreshing the page or check if the backend is running.`);
         }
         throw error;
     }

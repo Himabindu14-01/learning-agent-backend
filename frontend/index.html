@@ -118,11 +118,11 @@
                     localStorage.setItem('student_id', studentId);
                     localStorage.setItem('student_name', formData.name);
 
-                    successMessage.textContent = 'Profile created successfully! Redirecting to diagnostic...';
+                    successMessage.textContent = 'Profile created successfully! Redirecting to dashboard...';
                     successMessage.style.display = 'block';
 
                     setTimeout(() => {
-                        window.location.href = 'diagnostic.html';
+                        window.location.href = 'dashboard.html';
                     }, 1500);
                 } else {
                     throw new Error('Invalid response from server');
