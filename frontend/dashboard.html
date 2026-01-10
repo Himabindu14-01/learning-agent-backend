@@ -100,16 +100,15 @@
             </div>
         </main>
     </div>
-
     <script src="script.js"></script>
     <script>
         const studentId = localStorage.getItem('student_id');
         const studentName = localStorage.getItem('student_name');
-
+    
         if (studentName) {
             document.getElementById('studentName').textContent = `Welcome, ${studentName}`;
         }
-
+    
         if (!studentId) {
             document.getElementById('loadingState').style.display = 'none';
             document.getElementById('errorState').style.display = 'block';
@@ -117,165 +116,93 @@
         } else {
             loadDashboard();
         }
-
+    
         async function loadDashboard() {
             const loadingState = document.getElementById('loadingState');
             const dashboardContent = document.getElementById('dashboardContent');
             const errorState = document.getElementById('errorState');
             const refreshBtn = document.getElementById('refreshBtn');
-
+    
             loadingState.style.display = 'block';
             dashboardContent.style.display = 'none';
             errorState.style.display = 'none';
             refreshBtn.disabled = true;
-
+    
             try {
-                // Fetch latest action from agent
+                // 1️⃣ Fetch latest action
                 const latestActionResponse = await apiRequest(`/latest-action/${studentId}`, {
                     method: 'GET'
                 });
-
-                // Check if there's an error or no action yet
-                if (latestActionResponse && latestActionResponse.error) {
-                    throw new Error(latestActionResponse.error);
-                }
-
-                // Fetch mastery scores
-                let masteryData = [];
-                try {
-                    const masteryResponse = await apiRequest(`/mastery/${studentId}`, {
-                        method: 'GET'
-                    });
-                    masteryData = Array.isArray(masteryResponse) ? masteryResponse : [];
-                } catch (e) {
-                    console.warn('Could not fetch mastery data:', e);
-                }
-
-                // Handle case when no action exists yet
-                if (latestActionResponse && latestActionResponse.message && latestActionResponse.action === null) {
-                    // No action found - this is normal if Relay hasn't run yet
-                    const action = 'PENDING';
-                    const actionElement = document.getElementById('agentAction');
-                    actionElement.textContent = action;
-                    actionElement.className = 'action-badge action-pending';
-                    document.getElementById('actionDescription').textContent = latestActionResponse.message || 'No agent decision available yet. Trigger the Relay workflow to generate your learning plan.';
-                    document.getElementById('currentTopic').textContent = 'Not assigned yet';
-                    document.getElementById('taskContent').textContent = 'No task assigned yet. Please trigger the Relay workflow for this student.';
-                    latestActionResponse = null; // Set to null so we skip action processing
-                }
-
-                // Extract data from latest action
-                const latestAction = (latestActionResponse && latestActionResponse.action !== null && latestActionResponse.action !== undefined) ? latestActionResponse : null;
-                const action = latestAction ? (latestAction.action || 'PENDING') : 'PENDING';
-                const result = latestAction ? (latestAction.result || '') : '';
-
-                // Parse result (can be string or object)
+    
+                // 🔥 CRITICAL FIX: Backend returns ARRAY, not object
+                const latestAction = Array.isArray(latestActionResponse) && latestActionResponse.length > 0
+                    ? latestActionResponse[0]
+                    : null;
+    
+                let action = 'PENDING';
                 let task = 'No task assigned yet.';
                 let topic = 'Not assigned yet';
-                
-                if (result) {
-                    if (typeof result === 'string') {
-                        task = result;
-                    } else if (typeof result === 'object') {
-                        task = result.task || result.content || JSON.stringify(result);
-                        topic = result.topic || 'Not assigned yet';
-                    }
-                }
-                
-                // Only update action display if we have a real action
+    
                 if (latestAction) {
-
-                // Populate agent action
+                    action = latestAction.action || 'PENDING';
+                    task = latestAction.result || 'No task assigned yet.';
+                }
+    
+                // 2️⃣ Populate Agent Action
                 const actionElement = document.getElementById('agentAction');
                 actionElement.textContent = action;
                 actionElement.className = 'action-badge action-' + action.toLowerCase();
-
-                // Action descriptions
+    
                 const descriptions = {
                     'REMEDIAL': 'The agent has identified areas that need reinforcement. Focus on building foundational understanding.',
                     'PRACTICE': 'The agent recommends practice exercises to strengthen your grasp of the current topic.',
                     'ADVANCE': 'The agent has determined you are ready to move to the next topic.',
-                    'PENDING': latestActionResponse && latestActionResponse.message ? latestActionResponse.message : 'No agent decision available yet. Trigger the Relay workflow to generate your learning plan.'
+                    'PENDING': 'No agent decision available yet. Trigger the Relay workflow to generate your learning plan.'
                 };
                 document.getElementById('actionDescription').textContent = descriptions[action] || descriptions['PENDING'];
-
-                // Populate current topic and task
+    
+                // 3️⃣ Populate Topic and Task
                 document.getElementById('currentTopic').textContent = topic;
                 document.getElementById('taskContent').textContent = task;
-                }
-
-                // Populate student profile (from localStorage or latestAction if available)
+    
+                // 4️⃣ Populate Student Profile (from localStorage)
                 const storedName = localStorage.getItem('student_name') || '-';
                 document.getElementById('profileName').textContent = storedName;
-                
-                // Try to get more student info if available in action
-                if (latestAction && latestAction.student) {
-                    document.getElementById('profileClass').textContent = latestAction.student.class_level || '-';
-                    document.getElementById('profileSubject').textContent = latestAction.student.subject || '-';
-                    document.getElementById('profileGoal').textContent = latestAction.student.goal || '-';
-                }
-
-                // Populate mastery scores
-                const masteryContainer = document.getElementById('masteryContainer');
-                if (masteryData && masteryData.length > 0) {
-                    masteryContainer.innerHTML = '';
-                    masteryData.forEach(item => {
-                        const masteryItem = document.createElement('div');
-                        masteryItem.className = 'mastery-item';
-                        
-                        const topicName = document.createElement('div');
-                        topicName.className = 'mastery-topic';
-                        topicName.textContent = item.topic || item.topic_name || 'Unknown Topic';
-                        
-                        const scoreBar = document.createElement('div');
-                        scoreBar.className = 'mastery-score-bar';
-                        
-                        const scoreFill = document.createElement('div');
-                        scoreFill.className = 'mastery-score-fill';
-                        const score = parseInt(item.score || item.mastery_score || 0);
-                        scoreFill.style.width = `${score}%`;
-                        scoreFill.textContent = `${score}%`;
-                        
-                        scoreBar.appendChild(scoreFill);
-                        masteryItem.appendChild(topicName);
-                        masteryItem.appendChild(scoreBar);
-                        masteryContainer.appendChild(masteryItem);
-                    });
-                } else {
-                    masteryContainer.innerHTML = '<p class="no-data">No mastery data available yet. The agent will generate this after analyzing your progress.</p>';
-                }
-
-                // Populate activity history
+                document.getElementById('profileClass').textContent = '-';
+                document.getElementById('profileSubject').textContent = '-';
+                document.getElementById('profileGoal').textContent = '-';
+    
+                // 5️⃣ Populate Activity History
                 const activityContainer = document.getElementById('activityContainer');
                 if (latestAction) {
                     activityContainer.innerHTML = '';
                     const activityItem = document.createElement('div');
                     activityItem.className = 'activity-item';
-                    
+    
                     const activityText = `${action}: ${task}`;
-                    const timestamp = latestAction.created_at ? formatDate(latestAction.created_at) : '';
-                    
+                    const timestamp = latestAction.timestamp ? formatDate(latestAction.timestamp) : '';
+    
                     activityItem.innerHTML = `
                         <span class="activity-number">1</span>
                         <span class="activity-text">${activityText}</span>
                         ${timestamp ? `<span class="activity-time">${timestamp}</span>` : ''}
                     `;
-                    
+    
                     activityContainer.appendChild(activityItem);
                 } else {
-                    activityContainer.innerHTML = '<p class="no-data">No activity history available yet. Trigger the Relay workflow to generate your learning plan.</p>';
+                    activityContainer.innerHTML = '<p class="no-data">No activity history available yet. Trigger the Relay workflow.</p>';
                 }
-
+    
                 loadingState.style.display = 'none';
                 dashboardContent.style.display = 'block';
                 refreshBtn.disabled = false;
+    
             } catch (error) {
                 loadingState.style.display = 'none';
                 errorState.style.display = 'block';
-                document.getElementById('errorText').textContent = 'Failed to load dashboard: ' + error.message + '. Make sure the Relay workflow has been triggered for this student.';
+                document.getElementById('errorText').textContent = 'Failed to load dashboard: ' + error.message;
                 refreshBtn.disabled = false;
             }
         }
     </script>
-</body>
-</html>
+    
