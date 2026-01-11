@@ -101,108 +101,110 @@
         </main>
     </div>
     <script src="script.js"></script>
-    <script>
-        const studentId = localStorage.getItem('student_id');
-        const studentName = localStorage.getItem('student_name');
-    
-        if (studentName) {
-            document.getElementById('studentName').textContent = `Welcome, ${studentName}`;
-        }
-    
-        if (!studentId) {
-            document.getElementById('loadingState').style.display = 'none';
-            document.getElementById('errorState').style.display = 'block';
-            document.getElementById('errorText').textContent = 'No student profile found. Please complete onboarding first.';
-        } else {
-            loadDashboard();
-        }
-    
-        async function loadDashboard() {
-            const loadingState = document.getElementById('loadingState');
-            const dashboardContent = document.getElementById('dashboardContent');
-            const errorState = document.getElementById('errorState');
-            const refreshBtn = document.getElementById('refreshBtn');
-    
-            loadingState.style.display = 'block';
-            dashboardContent.style.display = 'none';
-            errorState.style.display = 'none';
-            refreshBtn.disabled = true;
-    
-            try {
-                // 1️⃣ Fetch latest action
-                const latestActionArray = await apiRequest(`/latest-action/${studentId}`, {
-    method: 'GET'
-});
+    <script src="script.js"></script>
+<script>
+    const studentId = localStorage.getItem('student_id');
+    const studentName = localStorage.getItem('student_name');
 
-// Backend returns an array, so take the first record
-const latestActionResponse = Array.isArray(latestActionArray) && latestActionArray.length > 0
-    ? latestActionArray[0]
-    : null;
+    if (studentName) {
+        document.getElementById('studentName').textContent = `Welcome, ${studentName}`;
+    }
 
-                let action = 'PENDING';
-                let task = 'No task assigned yet.';
-                let topic = 'Not assigned yet';
-    
-                if (latestAction) {
-                    action = latestAction.action || 'PENDING';
-                    task = latestAction.result || 'No task assigned yet.';
-                }
-    
-                // 2️⃣ Populate Agent Action
-                const actionElement = document.getElementById('agentAction');
-                actionElement.textContent = action;
-                actionElement.className = 'action-badge action-' + action.toLowerCase();
-    
-                const descriptions = {
-                    'REMEDIAL': 'The agent has identified areas that need reinforcement. Focus on building foundational understanding.',
-                    'PRACTICE': 'The agent recommends practice exercises to strengthen your grasp of the current topic.',
-                    'ADVANCE': 'The agent has determined you are ready to move to the next topic.',
-                    'PENDING': 'No agent decision available yet. Trigger the Relay workflow to generate your learning plan.'
-                };
-                document.getElementById('actionDescription').textContent = descriptions[action] || descriptions['PENDING'];
-    
-                // 3️⃣ Populate Topic and Task
-                document.getElementById('currentTopic').textContent = topic;
-                document.getElementById('taskContent').textContent = task;
-    
-                // 4️⃣ Populate Student Profile (from localStorage)
-                const storedName = localStorage.getItem('student_name') || '-';
-                document.getElementById('profileName').textContent = storedName;
-                document.getElementById('profileClass').textContent = '-';
-                document.getElementById('profileSubject').textContent = '-';
-                document.getElementById('profileGoal').textContent = '-';
-    
-                // 5️⃣ Populate Activity History
-                const activityContainer = document.getElementById('activityContainer');
-                if (latestAction) {
-                    activityContainer.innerHTML = '';
-                    const activityItem = document.createElement('div');
-                    activityItem.className = 'activity-item';
-    
-                    const activityText = `${action}: ${task}`;
-                    const timestamp = latestAction.timestamp ? formatDate(latestAction.timestamp) : '';
-    
-                    activityItem.innerHTML = `
-                        <span class="activity-number">1</span>
-                        <span class="activity-text">${activityText}</span>
-                        ${timestamp ? `<span class="activity-time">${timestamp}</span>` : ''}
-                    `;
-    
-                    activityContainer.appendChild(activityItem);
-                } else {
-                    activityContainer.innerHTML = '<p class="no-data">No activity history available yet. Trigger the Relay workflow.</p>';
-                }
-    
-                loadingState.style.display = 'none';
-                dashboardContent.style.display = 'block';
-                refreshBtn.disabled = false;
-    
-            } catch (error) {
-                loadingState.style.display = 'none';
-                errorState.style.display = 'block';
-                document.getElementById('errorText').textContent = 'Failed to load dashboard: ' + error.message;
-                refreshBtn.disabled = false;
+    if (!studentId) {
+        document.getElementById('loadingState').style.display = 'none';
+        document.getElementById('errorState').style.display = 'block';
+        document.getElementById('errorText').textContent = 'No student profile found. Please complete onboarding first.';
+    } else {
+        loadDashboard();
+    }
+
+    async function loadDashboard() {
+        const loadingState = document.getElementById('loadingState');
+        const dashboardContent = document.getElementById('dashboardContent');
+        const errorState = document.getElementById('errorState');
+        const refreshBtn = document.getElementById('refreshBtn');
+
+        loadingState.style.display = 'block';
+        dashboardContent.style.display = 'none';
+        errorState.style.display = 'none';
+        refreshBtn.disabled = true;
+
+        try {
+            let latestAction = null;
+
+            // 1️⃣ Fetch latest action from backend
+            const latestActionArray = await apiRequest(`/latest-action/${studentId}`, {
+                method: 'GET'
+            });
+
+            // Backend returns an array → take first record
+            if (Array.isArray(latestActionArray) && latestActionArray.length > 0) {
+                latestAction = latestActionArray[0];
             }
+
+            let action = 'PENDING';
+            let task = 'No task assigned yet.';
+            let topic = 'Not assigned yet';
+
+            if (latestAction) {
+                action = latestAction.action || 'PENDING';
+                task = latestAction.result || 'No task assigned yet.';
+            }
+
+            // 2️⃣ Populate Agent Action
+            const actionElement = document.getElementById('agentAction');
+            actionElement.textContent = action;
+            actionElement.className = 'action-badge action-' + action.toLowerCase();
+
+            const descriptions = {
+                'REMEDIAL': 'The agent has identified areas that need reinforcement. Focus on building foundational understanding.',
+                'PRACTICE': 'The agent recommends practice exercises to strengthen your grasp of the current topic.',
+                'ADVANCE': 'The agent has determined you are ready to move to the next topic.',
+                'PENDING': 'No agent decision available yet. Trigger the Relay workflow to generate your learning plan.'
+            };
+            document.getElementById('actionDescription').textContent = descriptions[action] || descriptions['PENDING'];
+
+            // 3️⃣ Populate Topic and Task
+            document.getElementById('currentTopic').textContent = topic;
+            document.getElementById('taskContent').textContent = task;
+
+            // 4️⃣ Populate Student Profile (from localStorage)
+            const storedName = localStorage.getItem('student_name') || '-';
+            document.getElementById('profileName').textContent = storedName;
+            document.getElementById('profileClass').textContent = '-';
+            document.getElementById('profileSubject').textContent = '-';
+            document.getElementById('profileGoal').textContent = '-';
+
+            // 5️⃣ Populate Activity History
+            const activityContainer = document.getElementById('activityContainer');
+            if (latestAction) {
+                activityContainer.innerHTML = '';
+                const activityItem = document.createElement('div');
+                activityItem.className = 'activity-item';
+
+                const activityText = `${action}: ${task}`;
+                const timestamp = latestAction.timestamp ? formatDate(latestAction.timestamp) : '';
+
+                activityItem.innerHTML = `
+                    <span class="activity-number">1</span>
+                    <span class="activity-text">${activityText}</span>
+                    ${timestamp ? `<span class="activity-time">${timestamp}</span>` : ''}
+                `;
+
+                activityContainer.appendChild(activityItem);
+            } else {
+                activityContainer.innerHTML = '<p class="no-data">No activity history available yet. Trigger the Relay workflow.</p>';
+            }
+
+            loadingState.style.display = 'none';
+            dashboardContent.style.display = 'block';
+            refreshBtn.disabled = false;
+
+        } catch (error) {
+            loadingState.style.display = 'none';
+            errorState.style.display = 'block';
+            document.getElementById('errorText').textContent = 'Failed to load dashboard: ' + error.message;
+            refreshBtn.disabled = false;
         }
-    </script>
-    
+    }
+</script>
