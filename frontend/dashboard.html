@@ -130,15 +130,15 @@
     
             try {
                 // 1️⃣ Fetch latest action
-                const latestActionResponse = await apiRequest(`/latest-action/${studentId}`, {
-                    method: 'GET'
-                });
-    
-                // 🔥 CRITICAL FIX: Backend returns ARRAY, not object
-                const latestAction = Array.isArray(latestActionResponse) && latestActionResponse.length > 0
-                    ? latestActionResponse[0]
-                    : null;
-    
+                const latestActionArray = await apiRequest(`/latest-action/${studentId}`, {
+    method: 'GET'
+});
+
+// Backend returns an array, so take the first record
+const latestActionResponse = Array.isArray(latestActionArray) && latestActionArray.length > 0
+    ? latestActionArray[0]
+    : null;
+
                 let action = 'PENDING';
                 let task = 'No task assigned yet.';
                 let topic = 'Not assigned yet';
