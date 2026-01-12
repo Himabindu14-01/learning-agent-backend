@@ -101,7 +101,8 @@
         </main>
     </div>
     <script src="script.js"></script>
-    <script src="script.js"></script>
+<script src="script.js"></script>
+
 <script>
     const studentId = localStorage.getItem('student_id');
     const studentName = localStorage.getItem('student_name');
@@ -137,7 +138,7 @@
                 method: 'GET'
             });
 
-            // Backend returns an array → take first record
+            // Backend returns array → take first row
             if (Array.isArray(latestActionArray) && latestActionArray.length > 0) {
                 latestAction = latestActionArray[0];
             }
@@ -168,9 +169,8 @@
             document.getElementById('currentTopic').textContent = topic;
             document.getElementById('taskContent').textContent = task;
 
-            // 4️⃣ Populate Student Profile (from localStorage)
-            const storedName = localStorage.getItem('student_name') || '-';
-            document.getElementById('profileName').textContent = storedName;
+            // 4️⃣ Populate Student Profile
+            document.getElementById('profileName').textContent = studentName || '-';
             document.getElementById('profileClass').textContent = '-';
             document.getElementById('profileSubject').textContent = '-';
             document.getElementById('profileGoal').textContent = '-';
